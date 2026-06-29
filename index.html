@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoScript Pro Hub</title>
+  <style>
+    /* =========================================
+       GLOBAL STYLES & THEME
+       ========================================= */
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1e272e; color: #f5f6fa; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 40px auto; background: #2f3640; padding: 25px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.4); }
+    h2 { margin-top: 0; color: #00a8ff; text-align: center; font-size: 24px; }
+    
+    /* Navigation Bar */
+    .nav-tabs { display: flex; justify-content: space-between; margin-bottom: 25px; background: #1e272e; border-radius: 8px; padding: 5px; }
+    .nav-tabs button { flex: 1; padding: 12px; background: transparent; color: #7f8fa6; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+    .nav-tabs button.active { background: #00a8ff; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    
+    /* View Sections */
+    .view-section { display: none; }
+    .view-section.active { display: block; animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Form Elements */
+    .form-group { margin-bottom: 15px; text-align: left; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; color: #dcdde1; font-size: 14px; }
+    input[type="text"], input[type="number"], input[type="email"], select, input[type="file"] { width: 100%; padding: 12px; border: 1px solid #353b48; border-radius: 6px; background: #1e272e; color: white; font-size: 15px; box-sizing: border-box; }
+    input[type="file"] { padding: 8px; }
+    
+    /* Buttons */
+    .btn { width: 100%; padding: 14px; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+    .btn-blue { background-color: #00a8ff; }
+    .btn-blue:hover { background-color: #0097e6; }
+    .btn-green { background-color: #4cd137; }
+    .btn-green:hover { background-color: #44bd32; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    
+    /* Status Messages */
+    .msg-box { min-height: 50px; padding: 15px; border-radius: 6px; font-size: 16px; font-weight: bold; margin-top: 20px; display: none; align-items: center; justify-content: center; text-align: center; word-break: break-word; }
+    .msg-box.success { display: flex; background-color: #4cd137; color: #1e272e; }
+    .msg-box.error { display: flex; background-color: #e84118; color: white; }
+    .msg-box.processing { display: flex; background-color: #fbc531; color: #1e272e; }
+
+    /* Scanner Specific */
+    #reader { width: 100%; background: #000; border-radius: 8px; overflow: hidden; margin-top: 15px; border: 2px solid #353b48; display: none; }
+  </style>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body>
+
+<div class="container">
+  <h2>AutoScript Hub</h2>
+
+  <div class="nav-tabs">
+    <button id="btn-enroll" class="active" onclick="switchTab('enroll')">Enroll</button>
+    <button id="btn-id" onclick="switchTab('id')">ID Portal</button>
+    <button id="btn-scan" onclick="switchTab('scan')">Scanner</button>
+  </div>
+
+  <div id="view-enroll" class="view-section active">
+    <form id="form-enroll" onsubmit="handleEnroll(event)">
+      <div class="form-group">
+        <label>Student Name</label>
+        <input type="text" id="en-name" required>
+      </div>
+      <div class="form-group">
+        <label>Age</label>
+        <input type="number" id="en-age" required>
+      </div>
+      <div class="form-group">
+        <label>Course</label>
+        <select id="en-course" required>
+          <option value="">Select a Course...</option>
+          <option value="Python Programming">Python Programming</option>
+          <option value="Web Development">Web Development</option>
+          <option value="Java / OOP">Java / OOP</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="en-email" required>
+      </div>
+      <button type="submit" class="btn btn-blue" id="submit-enroll">Register Student</button>
+    </form>
+    <div id="msg-enroll" class="msg-box"></div>
+  </div>
+
+  <div id="view-id" class="view-section">
+    <form id="form-id" onsubmit="handleID(event)">
+      <div class="form-group">
+        <label>Enrollment Number (e.g., ENR-001)</label>
+        <input type="text" id="id-number" required>
+      </div>
+      <div class="form-group">
+        <label>Student Photo (Square works best)</label>
+        <input type="file" id="id-photo" accept="image/png, image/jpeg" required>
+      </div>
+      <button type="submit" class="btn btn-blue" id="submit-id">Generate & Email ID</button>
+    </form>
+    <div id="msg-id" class="msg-box"></div>
+  </div>
+
+  <div id="view-scan" class="view-section">
+    <button class="btn btn-green" id="btn-start-camera" onclick="startScanner()">📸 Start Camera</button>
+    <div id="reader"></div>
+    
+    <div style="margin-top: 20px; border-top: 1px solid #7f8fa6; padding-top: 20px;">
+      <label>Manual Override</label>
+      <div style="display: flex; gap: 10px;">
+        <input type="text" id="scan-manual" placeholder="ENR-..." onkeypress="if(event.keyCode==13) processScanManual()">
+        <button class="btn btn-blue" style="margin-top: 0; width: auto;" onclick="processScanManual()">Log</button>
+      </div>
+    </div>
+    <div id="msg-scan" class="msg-box"></div>
+  </div>
+
+</div>
+
+<script>
+  // =========================================
+  // CORE CONFIGURATION & HELPERS
+  // =========================================
+  const API_URL = "https://script.google.com/macros/s/AKfycbyiM08C13kBsmMoTHxjjn-RYh232FSvwWY4nKgUkNosKPfZ1XvEhi8GL4-cSwTgvw7X/exec";
+  
+  // Tab Switching Logic
+  function switchTab(tab) {
+    // Reset buttons and hide all views
+    ['enroll', 'id', 'scan'].forEach(t => {
+      document.getElementById(`btn-${t}`).classList.remove('active');
+      document.getElementById(`view-${t}`).classList.remove('active');
+    });
+    
+    // Activate selected
+    document.getElementById(`btn-${tab}`).classList.add('active');
+    document.getElementById(`view-${tab}`).classList.add('active');
+  }
+
+  // Universal API Fetch Function
+  async function callMasterAPI(action, data, buttonId) {
+    const btn = document.getElementById(buttonId);
+    const originalText = btn.innerText;
+    btn.innerText = "Processing...";
+    btn.disabled = true;
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        redirect: 'follow',
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: action, data: data })
+      });
+      
+      const result = await response.json();
+      btn.innerText = originalText;
+      btn.disabled = false;
+      return result;
+      
+    } catch (error) {
+      btn.innerText = originalText;
+      btn.disabled = false;
+      return { success: false, error: "Network Error. Please try again." };
+    }
+  }
+
+  // =========================================
+  // VIEW 1 LOGIC: ENROLLMENT
+  // =========================================
+  async function handleEnroll(event) {
+    event.preventDefault();
+    const msgBox = document.getElementById('msg-enroll');
+    msgBox.className = "msg-box processing";
+    msgBox.innerHTML = "Saving to database...";
+
+    const data = {
+      name: document.getElementById('en-name').value,
+      age: document.getElementById('en-age').value,
+      course: document.getElementById('en-course').value,
+      email: document.getElementById('en-email').value
+    };
+
+    const res = await callMasterAPI("enrollStudent", data, "submit-enroll");
+    
+    if(res.success) {
+      msgBox.className = "msg-box success";
+      msgBox.innerHTML = `✅ ${res.name} Enrolled as ${res.id}`;
+      document.getElementById('form-enroll').reset();
+    } else {
+      msgBox.className = "msg-box error";
+      msgBox.innerHTML = `❌ ${res.error}`;
+    }
+  }
+
+  // =========================================
+  // VIEW 2 LOGIC: ID PORTAL
+  // =========================================
+  async function handleID(event) {
+    event.preventDefault();
+    const msgBox = document.getElementById('msg-id');
+    const fileInput = document.getElementById('id-photo');
+    const enrollNumber = document.getElementById('id-number').value.trim();
+
+    if (!fileInput.files.length) return alert("Please select a photo.");
+    
+    msgBox.className = "msg-box processing";
+    msgBox.innerHTML = "Generating PDF & sending email... (this takes a moment)";
+
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    reader.onload = async function() {
+      // Extract just the raw base64 string
+      const base64String = reader.result.split(',')[1]; 
+      
+      const data = {
+        enrollNumber: enrollNumber,
+        fileBase64: base64String,
+        fileMimeType: file.type
+      };
+
+      const res = await callMasterAPI("generateID", data, "submit-id");
+      
+      if(res.success) {
+        msgBox.className = "msg-box success";
+        msgBox.innerHTML = `✅ ID Generated and Emailed to ${res.name}!`;
+        document.getElementById('form-id').reset();
+      } else {
+        msgBox.className = "msg-box error";
+        msgBox.innerHTML = `❌ ${res.error}`;
+      }
+    };
+    
+    reader.readAsDataURL(file);
+  }
+
+  // =========================================
+  // VIEW 3 LOGIC: SCANNER
+  // =========================================
+  let html5QrCode;
+  let isScanning = false;
+
+  function startScanner() {
+    document.getElementById('reader').style.display = "block";
+    document.getElementById('btn-start-camera').style.display = "none";
+    
+    html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start(
+      { facingMode: "environment" }, 
+      { fps: 10, qrbox: { width: 250, height: 250 }, formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ] },
+      onScanSuccess
+    ).catch(err => {
+      document.getElementById('msg-scan').className = "msg-box error";
+      document.getElementById('msg-scan').innerHTML = "❌ Camera Error: Permissions denied or camera not found.";
+    });
+  }
+
+  function onScanSuccess(decodedText) {
+    if (isScanning) return;
+    processAttendance(decodedText.trim());
+  }
+
+  function processScanManual() {
+    const manualId = document.getElementById('scan-manual').value.trim();
+    if(manualId && !isScanning) {
+      processAttendance(manualId);
+      document.getElementById('scan-manual').value = "";
+    }
+  }
+
+  async function processAttendance(enrollId) {
+    isScanning = true;
+    const msgBox = document.getElementById('msg-scan');
+    msgBox.className = "msg-box processing";
+    msgBox.innerHTML = `Logging ${enrollId}...`;
+
+    // Send to Router
+    const res = await callMasterAPI("scanAttendance", { enrollNumber: enrollId }, "btn-scan"); // Borrow button for disabled state
+    
+    if(res.success) {
+      msgBox.className = "msg-box success";
+      msgBox.innerHTML = `✅ ${res.name} Logged Present!`;
+      playBeep();
+    } else {
+      msgBox.className = "msg-box error";
+      msgBox.innerHTML = `❌ ${res.error}`;
+    }
+
+    setTimeout(() => {
+      isScanning = false;
+      msgBox.style.display = "none";
+    }, 3000);
+  }
+
+  function playBeep() {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = 1000;
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      osc.start(); setTimeout(() => osc.stop(), 150);
+    } catch (e) {}
+  }
+</script>
+
+</body>
+</html>
